@@ -310,7 +310,7 @@ EOF
         last_ip=$ip
     fi
 
-    mkdir /root/hy
+    mkdir -p /root/hy
     cat << EOF > /root/hy/hy-client.yaml
 server: $last_ip:$last_port
 
@@ -559,10 +559,31 @@ showconf(){
 }
 
 update_core(){
-    wget -N https://raw.githubusercontent.com/Misaka-blog/hysteria-install/main/hy2/install_server.sh
-    bash install_server.sh
+    green "正在检测并更新 Hysteria 2 官方核心..."
     
-    rm -f install_server.sh
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)  hy_arch="amd64" ;;
+        aarch64) hy_arch="arm64" ;;
+        armv7l)  hy_arch="arm" ;;
+        i386|i686) hy_arch="386" ;;
+        *) red "不支持的系统架构: $arch" && return 1 ;;
+    esac
+
+    systemctl stop hysteria-server >/dev/null 2>&1
+
+    url="https://download.hysteria.network/app/latest/hysteria-linux-$hy_arch"
+    green "正在从官方下载核心: $url"
+    curl -L -o /usr/local/bin/hysteria "$url"
+    
+    if [[ $? -eq 0 && -f /usr/local/bin/hysteria ]]; then
+        chmod +x /usr/local/bin/hysteria
+        green "Hysteria 2 核心更新成功！"
+    else
+        red "Hysteria 2 核心下载或更新失败！"
+    fi
+
+    systemctl start hysteria-server
 }
 
 menu() {
